@@ -1,0 +1,23 @@
+compute_instances:
+  - name: api_server
+    instance_type: t3.large
+    replicas: 3
+    security_groups:
+      - prod-web-sg
+
+databases:
+  - name: primary_db
+    backup_retention_period: 30
+
+security_groups:
+  - name: prod-web-sg
+    description: "Allow web traffic from trusted source"
+    rules:
+      - protocol: "tcp"
+        from_port: 80
+        to_port: 80
+        cidr_blocks: ["203.0.113.0/24"] # Example: Trusted IP range
+      - protocol: "tcp"
+        from_port: 443
+        to_port: 443
+        cidr_blocks: ["203.0.113.0/24"]

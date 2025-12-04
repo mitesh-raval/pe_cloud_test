@@ -1,0 +1,22 @@
+compute_instances:
+  - name: api_server
+    replicas: 2
+    security_groups:
+      - staging-web-sg
+
+databases:
+  - name: primary_db
+    backup_retention_period: 15
+
+security_groups:
+  - name: staging-web-sg
+    description: "Allow web traffic from corporate VPN"
+    rules:
+      - protocol: "tcp"
+        from_port: 80
+        to_port: 80
+        cidr_blocks: ["10.100.0.0/16"] # Example: Corporate VPN range
+      - protocol: "tcp"
+        from_port: 443
+        to_port: 443
+        cidr_blocks: ["10.100.0.0/16"]

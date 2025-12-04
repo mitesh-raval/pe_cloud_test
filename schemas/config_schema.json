@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Configuration Schema",
+  "type": "object",
+  "properties": {
+    "compute_instances": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "instance_type": {
+            "type": "string",
+            "enum": ["t3.small", "t3.medium", "t3.large"]
+          },
+          "replicas": {"type": "integer", "minimum": 1}
+        },
+        "required": ["name", "instance_type", "replicas"]
+      }
+    },
+    "databases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "engine": {"type": "string", "enum": ["postgres"]},
+          "backup_retention_period": {"type": "integer", "minimum": 1},
+          "publicly_accessible": {"type": "boolean"}
+        },
+        "required": ["name", "engine", "backup_retention_period", "publicly_accessible"]
+      }
+    },
+    "storage_buckets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "versioning": {"type": "boolean"}
+        },
+        "required": ["name", "versioning"]
+      }
+    }
+  },
+  "required": ["compute_instances", "databases", "storage_buckets"]
+}

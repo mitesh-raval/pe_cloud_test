@@ -1,0 +1,29 @@
+compute_instances:
+  - name: api_server
+    instance_type: t3.small
+    replicas: 1
+    security_groups:
+      - web-sg
+
+databases:
+  - name: primary_db
+    engine: postgres
+    backup_retention_period: 7
+    publicly_accessible: false
+
+storage_buckets:
+  - name: app-data
+    versioning: false
+
+security_groups:
+  - name: web-sg
+    description: "Allow standard web traffic"
+    rules:
+      - protocol: "tcp"
+        from_port: 80
+        to_port: 80
+        cidr_blocks: ["0.0.0.0/0"]
+      - protocol: "tcp"
+        from_port: 443
+        to_port: 443
+        cidr_blocks: ["0.0.0.0/0"]
