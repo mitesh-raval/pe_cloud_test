@@ -1,0 +1,14 @@
+compute_instances:
+  - name: api_server
+    instance_type: t3.small
+    replicas: 1
+
+databases:
+  - name: primary_db
+    engine: postgres
+    backup_retention_period: 7
+    publicly_accessible: false
+
+storage_buckets:
+  - name: app-data
+    versioning: false

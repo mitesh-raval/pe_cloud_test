@@ -1,0 +1,7 @@
+compute_instances:
+  - name: api_server
+    replicas: 2
+
+databases:
+  - name: primary_db
+    backup_retention_period: 15

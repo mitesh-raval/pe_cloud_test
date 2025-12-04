@@ -1,0 +1,8 @@
+compute_instances:
+  - name: api_server
+    instance_type: t3.large
+    replicas: 3
+
+databases:
+  - name: primary_db
+    backup_retention_period: 30
