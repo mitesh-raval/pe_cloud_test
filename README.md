@@ -74,8 +74,15 @@ This will create a file like `generated_configs/prod.tfvars.json` with the fully
 To see what differs between any two environments:
 
 ```bash
-# Show differences between staging and prod
-python config_manager.py diff staging prod
+# Show differences between dev and staging
+python config_manager.py diff dev staging 
+
+# Example output
+Differences between 'dev' (left) and 'staging' (right):
+~ Modified: [compute_instances][0][replicas] from 1 to 2
+~ Modified: [databases][0][backup_retention_period] from 7 to 15
++ Added:    [compute_instances][0][security_groups][1] with value staging-web-sg
++ Added:    [security_groups][1] with value {'name': 'staging-web-sg', 'description': 'Allow web traffic from corporate VPN', 'rules': [{'protocol': 'tcp', 'from_port': 80, 'to_port': 80, 'cidr_blocks': ['10.100.0.0/16']}, {'protocol': 'tcp', 'from_port': 443, 'to_port': 443, 'cidr_blocks': ['10.100.0.0/16']}]}
 ```
 
 ## Potential Extensions
