@@ -1,7 +1,7 @@
 import click
 import yaml
 import json
-from jsonschema import validate, ValidationError
+from jsonschema import validate as jsonschema_validate, ValidationError
 from deepdiff import DeepDiff
 from pathlib import Path
 
@@ -60,17 +60,39 @@ def validate_config(config, env):
     with open(SCHEMA_FILE, 'r') as f:
         schema = json.load(f)
     try:
-        validate(instance=config, schema=schema)
+        jsonschema_validate(instance=config, schema=schema)
     except ValidationError as e:
-        raise click.ClickException(f"Schema validation failed for '{env}': {e.message}")
+        # Format the path to be more readable, e.g., "compute_instances[0].replicas"
+        path = ".".join(str(p) for p in e.path)
+        raise click.ClickException(f"Schema validation failed for '{env}' at '{path}': {e.message}")
 
     # 2. Custom Validation Rules
+    # Rule: Ensure attached security groups are actually defined (Cross-resource validation)
+    defined_sec_groups = {sg['name'] for sg in config.get("security_groups", [])}
+
+    for instance in config.get("compute_instances", []):
+        attached_sgs = instance.get("security_groups", [])
+        if not attached_sgs:
+            raise click.ClickException(f"Validation Error in '{env}': Instance '{instance['name']}' must have at least one security group.")
+        for attached_sg in attached_sgs:
+            if attached_sg not in defined_sec_groups:
+                raise click.ClickException(f"Validation Error in '{env}': Instance '{instance['name']}' uses undefined security group '{attached_sg}'.")
+
+    # Rule: Enforce cheaper instance types in 'dev' (Environment-specific policy)
+    if env == "dev":
+        allowed_dev_types = ["t3.micro", "t3.small"]
+        for instance in config.get("compute_instances", []):
+            if instance.get("instance_type") not in allowed_dev_types:
+                raise click.ClickException(f"Validation Error in '{env}': Instance '{instance['name']}' has type '{instance.get('instance_type')}'. Must be one of {allowed_dev_types}.")
+
+    # Rule: Production-specific hardening
     if env == "prod":
         for db in config.get("databases", []):
             if db.get("publicly_accessible"):
                 raise click.ClickException(f"Validation Error in '{env}': Production database '{db['name']}' cannot be publicly accessible.")
             if db.get("backup_retention_period", 0) < 30:
                 raise click.ClickException(f"Validation Error in '{env}': Production database '{db['name']}' backup retention must be >= 30 days.")
+
 
     click.secho(f"Configuration for '{env}' is valid.", fg="green")
 
@@ -128,11 +150,22 @@ def diff(env1, env2):
             return
 
         click.secho(f"Differences between '{env1}' (left) and '{env2}' (right):", bold=True)
-        for change in diff:
-            # Use a helper to format the path from DeepDiff
-            path_str = "".join([f"['{p}']" for p in change.path()])
-            if change.t1 is not None and change.t2 is not None:
-                click.echo(f"~ {path_str}: {click.style(str(change.t1), fg='red')} -> {click.style(str(change.t2), fg='green')}")
+
+        # Helper to format the path from DeepDiff for readability
+        def format_path(path_obj):
+            return path_obj.replace("root", "").replace("'", "")
+
+        if 'values_changed' in diff:
+            for item in diff['values_changed']:
+                path = format_path(item.path())
+                click.secho(f"~ Modified: {path}", fg='yellow', nl=False)
+                click.echo(f" from {click.style(str(item.t1), fg='red')} to {click.style(str(item.t2), fg='green')}")
+        if 'iterable_item_added' in diff:
+            for item in diff['iterable_item_added']:
+                click.secho(f"+ Added:    {format_path(item.path())} with value {item.t2}", fg='green')
+        if 'iterable_item_removed' in diff:
+            for item in diff['iterable_item_removed']:
+                click.secho(f"- Removed:  {format_path(item.path())} with value {item.t1}", fg='red')
 
     except Exception as e:
         click.secho(str(e), fg="red")
